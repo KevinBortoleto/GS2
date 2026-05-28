@@ -21,7 +21,7 @@ body {
 
 /* ── SECTION 1 — HERO ─ */
 .s1 {
-  height: 400vh;
+  height: 260vh;
   position: relative;
 }
 .s1-sticky {
@@ -446,4 +446,66 @@ body {
   font-size: 13px;
   color: #021b3a;
   max-width: 220px;
+}
+
+.s4 {
+  padding: 120px 24px;
+  background:
+    radial-gradient(circle at top, rgba(46,120,95,.18), transparent 40%),
+    #06111c;
+  display: flex;
+  justify-content: center;
+}
+
+.s4-inner {
+  width: 100%;
+  max-width: 620px;
+  background: rgba(10,20,30,.78);
+  border: 1px solid rgba(120,180,160,.12);
+  border-radius: 28px;
+  padding: 42px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 0 60px rgba(0,0,0,.35);
+}
+
+.s4-inner h2 {
+  color: #e8fff1;
+  font-size: 2rem;
+  margin-bottom: 28px;
+}
+
+.alert-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.alert-form input {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(160,220,190,.12);
+  border-radius: 14px;
+  padding: 16px;
+  color: white;
+  font-size: 15px;
+  outline: none;
+}
+
+.alert-form input::placeholder {
+  color: rgba(220,255,235,.35);
+}
+
+.alert-form button {
+  background: linear-gradient(135deg,#57d68d,#2a7d66);
+  border: none;
+  border-radius: 16px;
+  padding: 16px;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  transition: .25s;
+}
+
+.alert-form button:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
 }

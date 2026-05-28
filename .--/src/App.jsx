@@ -1,72 +1,251 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import "./css/App.css";
 import Footer from "./components/Footer";
+import emailjs from "@emailjs/browser";
 
 function LeafletMap() {
   const leafletRef = useRef(null);
+  const circlesRef = useRef([]);
+  const mapInitialized = useRef(false);
+
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
 
   useEffect(() => {
-    if (leafletRef.current) return;
+    if (mapInitialized.current) return;
 
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-    document.head.appendChild(link);
+    mapInitialized.current = true;
 
-    const script = document.createElement("script");
-    script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-    script.async = true;
-    script.onload = () => {
+    const loadMap = async () => {
+      if (!window.L) {
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href =
+          "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+
+        document.head.appendChild(link);
+
+        await new Promise((resolve) => {
+          const script = document.createElement("script");
+
+          script.src =
+            "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+
+          script.onload = resolve;
+
+          document.body.appendChild(script);
+        });
+      }
+
       const L = window.L;
+
+      const container = L.DomUtil.get("leaflet-map");
+
+      if (container?._leaflet_id) {
+        container._leaflet_id = null;
+      }
+
       const map = L.map("leaflet-map", {
-        center: [-15.0, -51.0],
+        center: [-15, -51],
         zoom: 4,
         zoomControl: true,
+        preferCanvas: true,
       });
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "© OpenStreetMap contributors",
-        maxZoom: 19,
-      }).addTo(map);
+
+      L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        {
+          attribution: "&copy; Esri",
+          maxZoom: 19,
+        }
+      ).addTo(map);
+
       leafletRef.current = map;
+
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 500);
     };
-    document.head.appendChild(script);
+
+    loadMap();
 
     return () => {
       if (leafletRef.current) {
         leafletRef.current.remove();
         leafletRef.current = null;
       }
-      document.head.removeChild(script);
-      document.head.removeChild(link);
     };
   }, []);
 
   const handleSearch = useCallback(async () => {
-    if (!query.trim() || !leafletRef.current) return;
-    setStatus("Buscando…");
+    if (!query.trim()) return;
+
+    const map = leafletRef.current;
+
+    if (!map) return;
+
+    setStatus("Buscando...");
+
     try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&accept-language=pt`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (!data.length) {
+      const geoUrl =
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&accept-language=pt`;
+
+      const geoRes = await fetch(geoUrl);
+
+      const geoData = await geoRes.json();
+
+      if (!geoData.length) {
         setStatus("Local não encontrado.");
         return;
       }
-      const { lat, lon, display_name } = data[0];
+
+      const result = geoData[0];
+
+      const latitude = parseFloat(result.lat);
+      const longitude = parseFloat(result.lon);
+
+      const weatherUrl =
+        `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=eed52582c8aa6b51900f5e9eee5da2c3&units=metric&lang=pt_br`;
+
+      const weatherRes = await fetch(weatherUrl);
+
+      const weatherData = await weatherRes.json();
+
+      const temperatura = weatherData.main.temp;
+      const umidade = weatherData.main.humidity;
+      const vento = weatherData.wind.speed;
+      const descricao = weatherData.weather[0].description;
+
       const L = window.L;
-      const map = leafletRef.current;
-      map.flyTo([parseFloat(lat), parseFloat(lon)], 13, { duration: 1.8 });
-      L.popup()
-        .setLatLng([parseFloat(lat), parseFloat(lon)])
-        .setContent(
-          `<div style="font-family:'DM Sans',sans-serif;font-size:13px;color:#021b3a;max-width:220px;">${display_name}</div>`,
-        )
-        .openOn(map);
+
+      map.flyTo([latitude, longitude], 12, {
+        duration: 2,
+      });
+
+      setTimeout(async () => {
+        circlesRef.current.forEach((circle) => {
+          map.removeLayer(circle);
+        });
+
+        circlesRef.current = [];
+
+        let cor = "#43d854";
+        let mensagem = "🟢 Condições climáticas estáveis";
+        let nivel = "NORMAL";
+
+        if (temperatura >= 35) {
+          cor = "#ff3b3b";
+          mensagem = "🔥 Calor extremo detectado";
+          nivel = "SEVERO";
+        }
+
+        else if (temperatura >= 30) {
+          cor = "#ffd43b";
+          mensagem = "⚠️ Temperatura elevada";
+          nivel = "ATENÇÃO";
+        }
+
+        if (umidade <= 30) {
+          cor = "#ff7b00";
+          mensagem = "🌵 Baixa umidade do ar";
+          nivel = "MODERADO";
+        }
+
+        if (vento >= 12) {
+          cor = "#d946ef";
+          mensagem = "💨 Ventania detectada";
+          nivel = "MODERADO";
+        }
+
+        if (umidade >= 85 && vento >= 8) {
+          cor = "#3ba4ff";
+          mensagem = "🌧️ Risco de tempestade";
+          nivel = "SEVERO";
+        }
+
+        const circle = L.circle(
+          [latitude, longitude],
+          {
+            radius: 4000,
+            color: cor,
+            fillColor: cor,
+            fillOpacity: 0.3,
+            weight: 2,
+          }
+        ).addTo(map);
+
+        circle.bindPopup(`
+          <div style="
+            font-family:DM Sans,sans-serif;
+            color:#021b3a;
+            line-height:1.6;
+          ">
+            <strong>${result.display_name}</strong><br/><br/>
+
+            🚨 Status: ${nivel}<br/><br/>
+
+            🌡️ Temperatura: ${temperatura.toFixed(1)}°C<br/>
+            💧 Umidade: ${umidade}%<br/>
+            🌬️ Vento: ${vento} m/s<br/>
+            ☁️ Clima: ${descricao}
+
+            <br/><br/>
+             ${mensagem}
+          </div>
+        `);
+
+        circlesRef.current.push(circle);
+
+        // popup principal
+        let mensagemPrincipal = "🟢 Região estável";
+
+        if (temperatura >= 35 || umidade <= 30) {
+          mensagemPrincipal =
+            "🔥 Risco elevado de calor/incêndio";
+        } else if (temperatura >= 30) {
+          mensagemPrincipal =
+            "⚠️ Região em observação climática";
+        }
+
+        if (umidade >= 80 && vento >= 15.5 && temperatura <= 0) {
+          mensagemPrincipal =
+            "❄️ Possível risco de nevasca";
+        } else if (umidade >= 90 && vento >= 8 && temperatura <= 0) {
+          mensagemPrincipal = "🌨️ Forte tempestade de neve (Vento moderado)";
+        } else if (umidade >= 90 && vento >= 8 && temperatura > 0) {
+          mensagemPrincipal = "⛈️ Possível risco de tempestada severa / enchente 🌊";
+        } 
+
+        L.popup()
+          .setLatLng([latitude, longitude])
+          .setContent(`
+            <div style="
+              font-family:'DM Sans',sans-serif;
+              font-size:13px;
+              color:#021b3a;
+              max-width:220px;
+              line-height:1.6;
+            ">
+              <strong>${result.display_name}</strong><br/><br/>
+
+              🌡️ Temperatura: ${temperatura.toFixed(1)}°C<br/>
+              💧 Umidade: ${umidade}%<br/>
+              🌬️ Vento: ${vento} m/s<br/>
+              ☁️ Clima: ${descricao}
+
+              <br/><br/>
+               ${mensagemPrincipal}
+            </div>
+          `)
+          .openOn(map);
+
+      }, 2100);
+
       setStatus("");
-    } catch {
-      setStatus("Erro ao buscar. Tente novamente.");
+
+    } catch (err) {
+      console.error(err);
+      setStatus("Erro ao buscar.");
     }
   }, [query]);
 
@@ -74,34 +253,43 @@ function LeafletMap() {
     <div className="s3">
       <div className="s3-header">
         <div>
-          <div className="s3-title">Explore o território</div>
+          <div className="s3-title">
+            Explore o território
+          </div>
+
           <div className="s3-sub">
             Navegue pelo mapa e encontre sua área de monitoramento
           </div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 6
+        }}>
           <div className="search-bar">
             <input
-              placeholder="Cidade, estado, endereço…"
+              placeholder="Cidade, estado..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              onKeyDown={(e) =>
+                e.key === "Enter" && handleSearch()
+              }
             />
-            <button onClick={handleSearch}>Buscar</button>
+
+            <button onClick={handleSearch}>
+              Buscar
+            </button>
           </div>
+
           {status && (
-            <span
-              style={{
-                fontSize: 12,
-                color: "rgba(180,210,185,.55)",
-                paddingLeft: 2,
-              }}
-            >
+            <span className="search-status">
               {status}
             </span>
           )}
         </div>
       </div>
+
       <div className="map-container">
         <div id="leaflet-map" />
       </div>
@@ -112,6 +300,90 @@ function LeafletMap() {
 /* ─── MAIN APP ───────────────────────────────────────────────── */
 export default function AgroView() {
   const [scroll, setScroll] = useState(0);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [city, setCity] = useState("");
+  const [emailStatus, setEmailStatus] = useState("");
+
+  const sendEmail = async (e) => {
+    e.preventDefault();
+
+    try {
+      const geoUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}&limit=1&accept-language=pt`;
+
+      const geoRes = await fetch(geoUrl);
+      const geoData = await geoRes.json();
+
+      let temperatura = "";
+      let umidade = "";
+      let descricao = "";
+      let alerta = "🟢 Condições climáticas estáveis";
+      let nivel = "NORMAL";
+
+      if (geoData.length) {
+        const lat = geoData[0].lat;
+        const lon = geoData[0].lon;
+
+        const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=eed52582c8aa6b51900f5e9eee5da2c3&units=metric&lang=pt_br`;
+
+        const weatherRes = await fetch(weatherUrl);
+        const weatherData = await weatherRes.json();
+
+        if (weatherData.main.temp >= 35) {
+          alerta = "🔥 Calor extremo detectado";
+          nivel = "SEVERO";
+        }
+
+        else if (weatherData.main.temp >= 30) {
+          alerta = "⚠️ Temperatura elevada";
+          nivel = "ATENÇÃO";
+        }
+
+        if (weatherData.main.humidity <= 30) {
+          alerta = "🌵 Baixa umidade do ar";
+          nivel = "MODERADO";
+        }
+
+        if (weatherData.wind.speed >= 12) {
+          alerta = "💨 Ventania detectada";
+          nivel = "MODERADO";
+        }
+
+        if (
+          weatherData.main.humidity >= 85 &&
+          weatherData.wind.speed >= 8
+        ) {
+          alerta = "🌧️ Risco de tempestade";
+          nivel = "SEVERO";
+        }
+      }
+
+      await emailjs.send(
+        "service_lwp56aq",
+        "template_80c0j19",
+        {
+          name,
+          email,
+          city,
+          temperatura,
+          umidade,
+          descricao,
+          alerta,
+          nivel,
+        },
+        "VcKOfB_mfRTJRnhs8"
+      );
+
+      setEmailStatus("Monitoramento ativado com sucesso!");
+
+      setName("");
+      setEmail("");
+      setCity("");
+    } catch (error) {
+      setEmailStatus("Erro ao enviar monitoramento.");
+      console.error(error);
+    }
+  };
 
   useEffect(() => {
     const onScroll = () => {
@@ -132,8 +404,8 @@ export default function AgroView() {
 
   const minSize = Math.min(vw, vh) * 0.4;
   const maxSize = Math.sqrt(vw * vw + vh * vh) * 1.5;
-  const zoomStart = 0.45;
-  const zoomProg = Math.max(0, (scroll - zoomStart) / (1 - zoomStart));
+  const zoomStart = 0.38;
+  const zoomProg = Math.max(0, (scroll - zoomStart) / 0.58);
   const earthSize = minSize + (maxSize - minSize) * Math.pow(zoomProg, 2);
 
   const br = Math.max(0, 50 - zoomProg * 60);
@@ -266,6 +538,47 @@ export default function AgroView() {
         </div>
       </section>
       <LeafletMap />
+      <section className="s4">
+        <div className="s4-inner">
+          <h2>Receba alertas ambientais</h2>
+
+          <form onSubmit={sendEmail} className="alert-form">
+            <input
+              type="text"
+              placeholder="Seu nome"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+
+            <input
+              type="email"
+              placeholder="Seu email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+
+            <input
+              type="text"
+              placeholder="Cidade monitorada"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              required
+            />
+
+            <button type="submit">
+              Ativar monitoramento
+            </button>
+          </form>
+
+          {emailStatus && (
+            <p style={{ marginTop: 12 }}>
+              {emailStatus}
+            </p>
+          )}
+        </div>
+      </section>
       <Footer />
     </>
   );
