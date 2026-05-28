@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import "./App.css";
+import "./css/App.css";
 import Footer from "./components/Footer";
 
 function LeafletMap() {
@@ -210,7 +210,7 @@ export default function AgroView() {
               planejem suas áreas com precisão. Do plantio à colheita, cada
               hectare em suas mãos.
             </p>
-            <button className="s2-cta" href="">
+            <button className="s2-cta" href="null">
               Começar agora →
             </button>
 

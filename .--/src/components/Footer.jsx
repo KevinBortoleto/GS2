@@ -1,10 +1,8 @@
 import { useState } from "react";
-r;
 
 export default function Footer() {
   return (
     <>
-      <style>{STYLES}</style>
       <footer className="footer">
         <div className="footer-grid">
           <div className="footer-brand">
