@@ -20,16 +20,14 @@ function LeafletMap() {
       if (!window.L) {
         const link = document.createElement("link");
         link.rel = "stylesheet";
-        link.href =
-          "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+        link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
 
         document.head.appendChild(link);
 
         await new Promise((resolve) => {
           const script = document.createElement("script");
 
-          script.src =
-            "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+          script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
 
           script.onload = resolve;
 
@@ -57,7 +55,7 @@ function LeafletMap() {
         {
           attribution: "&copy; Esri",
           maxZoom: 19,
-        }
+        },
       ).addTo(map);
 
       leafletRef.current = map;
@@ -87,8 +85,7 @@ function LeafletMap() {
     setStatus("Buscando...");
 
     try {
-      const geoUrl =
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&accept-language=pt`;
+      const geoUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&accept-language=pt`;
 
       const geoRes = await fetch(geoUrl);
 
@@ -104,8 +101,7 @@ function LeafletMap() {
       const latitude = parseFloat(result.lat);
       const longitude = parseFloat(result.lon);
 
-      const weatherUrl =
-        `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=eed52582c8aa6b51900f5e9eee5da2c3&units=metric&lang=pt_br`;
+      const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=eed52582c8aa6b51900f5e9eee5da2c3&units=metric&lang=pt_br`;
 
       const weatherRes = await fetch(weatherUrl);
 
@@ -137,9 +133,7 @@ function LeafletMap() {
           cor = "#ff3b3b";
           mensagem = "🔥 Calor extremo detectado";
           nivel = "SEVERO";
-        }
-
-        else if (temperatura >= 30) {
+        } else if (temperatura >= 30) {
           cor = "#ffd43b";
           mensagem = "⚠️ Temperatura elevada";
           nivel = "ATENÇÃO";
@@ -163,16 +157,13 @@ function LeafletMap() {
           nivel = "SEVERO";
         }
 
-        const circle = L.circle(
-          [latitude, longitude],
-          {
-            radius: 4000,
-            color: cor,
-            fillColor: cor,
-            fillOpacity: 0.3,
-            weight: 2,
-          }
-        ).addTo(map);
+        const circle = L.circle([latitude, longitude], {
+          radius: 4000,
+          color: cor,
+          fillColor: cor,
+          fillOpacity: 0.3,
+          weight: 2,
+        }).addTo(map);
 
         circle.bindPopup(`
           <div style="
@@ -200,25 +191,24 @@ function LeafletMap() {
         let mensagemPrincipal = "🟢 Região estável";
 
         if (temperatura >= 35 || umidade <= 30) {
-          mensagemPrincipal =
-            "🔥 Risco elevado de calor/incêndio";
+          mensagemPrincipal = "🔥 Risco elevado de calor/incêndio";
         } else if (temperatura >= 30) {
-          mensagemPrincipal =
-            "⚠️ Região em observação climática";
+          mensagemPrincipal = "⚠️ Região em observação climática";
         }
 
         if (umidade >= 80 && vento >= 15.5 && temperatura <= 0) {
-          mensagemPrincipal =
-            "❄️ Possível risco de nevasca";
+          mensagemPrincipal = "❄️ Possível risco de nevasca";
         } else if (umidade >= 90 && vento >= 8 && temperatura <= 0) {
           mensagemPrincipal = "🌨️ Forte tempestade de neve (Vento moderado)";
         } else if (umidade >= 90 && vento >= 8 && temperatura > 0) {
-          mensagemPrincipal = "⛈️ Possível risco de tempestada severa / enchente 🌊";
-        } 
+          mensagemPrincipal =
+            "⛈️ Possível risco de tempestada severa / enchente 🌊";
+        }
 
         L.popup()
           .setLatLng([latitude, longitude])
-          .setContent(`
+          .setContent(
+            `
             <div style="
               font-family:'DM Sans',sans-serif;
               font-size:13px;
@@ -236,13 +226,12 @@ function LeafletMap() {
               <br/><br/>
                ${mensagemPrincipal}
             </div>
-          `)
+          `,
+          )
           .openOn(map);
-
       }, 2100);
 
       setStatus("");
-
     } catch (err) {
       console.error(err);
       setStatus("Erro ao buscar.");
@@ -253,40 +242,32 @@ function LeafletMap() {
     <div className="s3">
       <div className="s3-header">
         <div>
-          <div className="s3-title">
-            Explore o território
-          </div>
+          <div className="s3-title">Explore o território</div>
 
           <div className="s3-sub">
             Navegue pelo mapa e encontre sua área de monitoramento
           </div>
         </div>
 
-        <div style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 6
-        }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+          }}
+        >
           <div className="search-bar">
             <input
               placeholder="Cidade, estado..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) =>
-                e.key === "Enter" && handleSearch()
-              }
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />
 
-            <button onClick={handleSearch}>
-              Buscar
-            </button>
+            <button onClick={handleSearch}>Buscar</button>
           </div>
 
-          {status && (
-            <span className="search-status">
-              {status}
-            </span>
-          )}
+          {status && <span className="search-status">{status}</span>}
         </div>
       </div>
 
@@ -332,9 +313,7 @@ export default function AgroView() {
         if (weatherData.main.temp >= 35) {
           alerta = "🔥 Calor extremo detectado";
           nivel = "SEVERO";
-        }
-
-        else if (weatherData.main.temp >= 30) {
+        } else if (weatherData.main.temp >= 30) {
           alerta = "⚠️ Temperatura elevada";
           nivel = "ATENÇÃO";
         }
@@ -349,10 +328,7 @@ export default function AgroView() {
           nivel = "MODERADO";
         }
 
-        if (
-          weatherData.main.humidity >= 85 &&
-          weatherData.wind.speed >= 8
-        ) {
+        if (weatherData.main.humidity >= 85 && weatherData.wind.speed >= 8) {
           alerta = "🌧️ Risco de tempestade";
           nivel = "SEVERO";
         }
@@ -371,7 +347,7 @@ export default function AgroView() {
           alerta,
           nivel,
         },
-        "VcKOfB_mfRTJRnhs8"
+        "VcKOfB_mfRTJRnhs8",
       );
 
       setEmailStatus("Monitoramento ativado com sucesso!");
@@ -482,9 +458,9 @@ export default function AgroView() {
               planejem suas áreas com precisão. Do plantio à colheita, cada
               hectare em suas mãos.
             </p>
-            <button className="s2-cta" href="null">
+            <a className="s2-cta" href="#.s4">
               Começar agora →
-            </button>
+            </a>
 
             <div className="stats-strip">
               {[
@@ -511,23 +487,26 @@ export default function AgroView() {
           <div className="features">
             {[
               {
-                icon: "🛰️",
+                icon: "./public/satelite.png",
                 t: "Imagens de satélite",
                 d: "Acesse imagens atualizadas do seu território, identificando áreas de plantio, pastagem e corpos d'água com detalhes precisos.",
               },
               {
-                icon: "📡",
+                icon: "./public/olho.png",
                 t: "Monitoramento em tempo real",
                 d: "Receba alertas instantâneos sobre variações climáticas, pragas ou invasões nas suas áreas monitoradas.",
               },
               {
-                icon: "📊",
+                icon: "./public/planejamento.png",
                 t: "Planejamento inteligente",
                 d: "Relatórios históricos e projeções baseadas em dados reais para embasar decisões de plantio e investimento.",
               },
             ].map((f) => (
               <div className="feat-card" key={f.t}>
-                <div className="feat-icon">{f.icon}</div>
+                <div className="feat-icon">
+                  <img src={f.icon} alt={f.t} className="feat-icon-img" />
+                </div>
+
                 <div>
                   <div className="feat-title">{f.t}</div>
                   <div className="feat-desc">{f.d}</div>
@@ -538,7 +517,7 @@ export default function AgroView() {
         </div>
       </section>
       <LeafletMap />
-      <section className="s4">
+      <section className="s4" id=".s4">
         <div className="s4-inner">
           <h2>Receba alertas ambientais</h2>
 
@@ -567,16 +546,10 @@ export default function AgroView() {
               required
             />
 
-            <button type="submit">
-              Ativar monitoramento
-            </button>
+            <button type="submit">Ativar monitoramento</button>
           </form>
 
-          {emailStatus && (
-            <p style={{ marginTop: 12 }}>
-              {emailStatus}
-            </p>
-          )}
+          {emailStatus && <p style={{ marginTop: 12 }}>{emailStatus}</p>}
         </div>
       </section>
       <Footer />
