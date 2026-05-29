@@ -335,9 +335,9 @@ body {
   display: flex;
   gap: 0;
   height: 44px;
-  min-width: 300px;
+  min-width: 380px;
   flex: 1;
-  max-width: 440px;
+  max-width: 450px;
 }
 .search-bar input {
   flex: 1;

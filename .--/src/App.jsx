@@ -158,7 +158,7 @@ function LeafletMap() {
         }
 
         const circle = L.circle([latitude, longitude], {
-          radius: 4000,
+          radius: 1800,
           color: cor,
           fillColor: cor,
           fillOpacity: 0.3,
@@ -258,7 +258,7 @@ function LeafletMap() {
         >
           <div className="search-bar">
             <input
-              placeholder="Cidade, estado..."
+              placeholder="Digite uma cidade, estado ou bairro..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -310,26 +310,70 @@ export default function AgroView() {
         const weatherRes = await fetch(weatherUrl);
         const weatherData = await weatherRes.json();
 
-        if (weatherData.main.temp >= 35) {
+        temperatura = weatherData.main.temp.toFixed(1);
+        umidade = weatherData.main.humidity;
+        descricao = weatherData.weather[0].description;
+
+        const temp = weatherData.main.temp;
+        const hum = weatherData.main.humidity;
+        const vento = weatherData.wind.speed;
+
+        alerta = "🟢 Condições climáticas estáveis";
+        nivel = "NORMAL";
+
+        if (temp >= 40) {
+          alerta = "🥵 Onda de calor extrema";
+          nivel = "SEVERO";
+        }
+
+        else if (temp >= 35) {
           alerta = "🔥 Calor extremo detectado";
           nivel = "SEVERO";
-        } else if (weatherData.main.temp >= 30) {
+        }
+
+        else if (temp >= 30) {
           alerta = "⚠️ Temperatura elevada";
           nivel = "ATENÇÃO";
         }
 
-        if (weatherData.main.humidity <= 30) {
-          alerta = "🌵 Baixa umidade do ar";
+        if (hum <= 20) {
+          alerta = "🌵 Umidade crítica do ar";
+          nivel = "SEVERO";
+        }
+
+        else if (hum <= 30) {
+          alerta = "💨 Baixa umidade do ar";
           nivel = "MODERADO";
         }
 
-        if (weatherData.wind.speed >= 12) {
+        if (vento >= 20) {
+          alerta = "🌪️ Ventania intensa";
+          nivel = "SEVERO";
+        }
+
+        else if (vento >= 12) {
           alerta = "💨 Ventania detectada";
           nivel = "MODERADO";
         }
 
-        if (weatherData.main.humidity >= 85 && weatherData.wind.speed >= 8) {
-          alerta = "🌧️ Risco de tempestade";
+        if (
+          hum >= 90 &&
+          vento >= 10 &&
+          descricao.toLowerCase().includes("chuva")
+        ) {
+          alerta = "🌧️ Risco de tempestade e alagamentos";
+          nivel = "SEVERO";
+        }
+
+        if (
+          temp <= 0 &&
+          vento >= 10 &&
+          (
+            descricao.toLowerCase().includes("neve") ||
+            descricao.toLowerCase().includes("snow")
+          )
+        ) {
+          alerta = "❄️ Possível nevasca";
           nivel = "SEVERO";
         }
       }
@@ -453,12 +497,12 @@ export default function AgroView() {
               Conheça a <em>amplitude</em> do seu território
             </h2>
             <p className="s2-body">
-              AgroView combina imagens de satélite em tempo real com análise
-              inteligente para que produtores rurais visualizem, monitorem e
-              planejem suas áreas com precisão. Do plantio à colheita, cada
-              hectare em suas mãos.
+              AgroView combina imagens de satélite em tempo real com análise climática
+              inteligente para monitorar regiões, identificar riscos ambientais e 
+              acompanhar condições territoriais com precisão. Tudo em uma interface
+              visual moderna e acessível.
             </p>
-            <a className="s2-cta" href="#.s4">
+            <a className="s2-cta" href="#s4">
               Começar agora →
             </a>
 
@@ -487,19 +531,19 @@ export default function AgroView() {
           <div className="features">
             {[
               {
-                icon: "./public/satelite.png",
+                icon: "/satelite.png",
                 t: "Imagens de satélite",
-                d: "Acesse imagens atualizadas do seu território, identificando áreas de plantio, pastagem e corpos d'água com detalhes precisos.",
+                d: "Acesse imagens atualizadas do seu território, identificando áreas de plantio, pastagem e corpos d'água.",
               },
               {
-                icon: "./public/olho.png",
+                icon: "/olho.png",
                 t: "Monitoramento em tempo real",
                 d: "Receba alertas instantâneos sobre variações climáticas, pragas ou invasões nas suas áreas monitoradas.",
               },
               {
-                icon: "./public/planejamento.png",
+                icon: "/planejamento.png",
                 t: "Planejamento inteligente",
-                d: "Relatórios históricos e projeções baseadas em dados reais para embasar decisões de plantio e investimento.",
+                d: "Relatórios históricos e projeções baseadas em dados reais para embasar decisões de plantio e investimento, diretamente no seu email.",
               },
             ].map((f) => (
               <div className="feat-card" key={f.t}>
@@ -517,7 +561,7 @@ export default function AgroView() {
         </div>
       </section>
       <LeafletMap />
-      <section className="s4" id=".s4">
+      <section className="s4" id="s4">
         <div className="s4-inner">
           <h2>Receba alertas ambientais</h2>
 
